@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+
 import javax.mail.MessagingException;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
