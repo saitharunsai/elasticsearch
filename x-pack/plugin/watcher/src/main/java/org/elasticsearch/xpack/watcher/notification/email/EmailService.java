@@ -365,8 +365,8 @@ public class EmailService extends NotificationService<Account> {
         }
 
         final Set<String> recipients = getRecipients(email, false);
-        final Predicate<String> matchesAnyAllowedRecipient = recipient -> recipients.stream()
-            .anyMatch(allowedDomain -> Regex.simpleMatch(allowedDomain, recipient, true));
+        final Predicate<String> matchesAnyAllowedRecipient = recipient -> allowedRecipientPatterns.stream()
+            .anyMatch(pattern -> Regex.simpleMatch(pattern, recipient, true));
         return recipients.stream().allMatch(matchesAnyAllowedRecipient);
     }
 

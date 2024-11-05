@@ -321,6 +321,103 @@ public class EmailServiceTests extends ESTestCase {
         assertThat(e2.getMessage(), containsString("port out of range"));
     }
 
+    public void testRecipientAddressInAllowList_EmptyAllowedPatterns() throws UnsupportedEncodingException {
+        Email email = createTestEmail("foo@bar.com", "baz@potato.com");
+        Set<String> allowedPatterns = Set.of();
+        assertThat(EmailService.recipientAddressInAllowList(email, allowedPatterns), is(false));
+    }
+
+    public void testRecipientAddressInAllowList_WildcardPattern() throws UnsupportedEncodingException {
+        Email email = createTestEmail("foo@bar.com", "baz@potato.com");
+        Set<String> allowedPatterns = Set.of("*");
+        assertThat(EmailService.recipientAddressInAllowList(email, allowedPatterns), is(true));
+    }
+
+    public void testRecipientAddressInAllowList_SpecificPattern() throws UnsupportedEncodingException {
+        Email email = createTestEmail("foo@bar.com", "baz@potato.com");
+        Set<String> allowedPatterns = Set.of("foo@bar.com");
+        assertThat(EmailService.recipientAddressInAllowList(email, allowedPatterns), is(false));
+    }
+
+    public void testRecipientAddressInAllowList_MultiplePatterns() throws UnsupportedEncodingException {
+        Email email = createTestEmail("foo@bar.com", "baz@potato.com");
+        Set<String> allowedPatterns = Set.of("foo@bar.com", "baz@potato.com");
+        assertThat(EmailService.recipientAddressInAllowList(email, allowedPatterns), is(true));
+    }
+
+    public void testRecipientAddressInAllowList_MixedCasePatterns() throws UnsupportedEncodingException {
+        Email email = createTestEmail("foo@bar.com", "baz@potato.com");
+        Set<String> allowedPatterns = Set.of("FOO@BAR.COM", "BAZ@POTATO.COM");
+        assertThat(EmailService.recipientAddressInAllowList(email, allowedPatterns), is(true));
+    }
+
+    public void testRecipientAddressInAllowList_PartialWildcardPrefixPattern() throws UnsupportedEncodingException {
+        Email email = createTestEmail("foo@bar.com", "baz@potato.com");
+        Set<String> allowedPatterns = Set.of("foo@*", "baz@*");
+        assertThat(EmailService.recipientAddressInAllowList(email, allowedPatterns), is(true));
+    }
+
+    public void testRecipientAddressInAllowList_PartialWildcardSuffixPattern() throws UnsupportedEncodingException {
+        Email email = createTestEmail("foo@bar.com", "baz@potato.com");
+        Set<String> allowedPatterns = Set.of("*@bar.com", "*@potato.com");
+        assertThat(EmailService.recipientAddressInAllowList(email, allowedPatterns), is(true));
+    }
+
+    public void testRecipientAddressInAllowList_DisallowedCCAddressesFails() throws UnsupportedEncodingException {
+        Email email = new Email(
+            "id",
+            new Email.Address("sender@domain.com", "Sender"),
+            createAddressList("foo@bar.com"),
+            randomFrom(Email.Priority.values()),
+            ZonedDateTime.now(),
+            createAddressList("foo@bar.com"),
+            createAddressList("cc@allowed.com", "cc@notallowed.com"),
+            null,
+            "subject",
+            "body",
+            "htmlbody",
+            Collections.emptyMap()
+        );
+        Set<String> allowedPatterns = Set.of("foo@bar.com", "cc@allowed.com");
+        assertThat(EmailService.recipientAddressInAllowList(email, allowedPatterns), is(false));
+    }
+
+    public void testRecipientAddressInAllowList_DisallowedBCCAddressesFails() throws UnsupportedEncodingException {
+        Email email = new Email(
+            "id",
+            new Email.Address("sender@domain.com", "Sender"),
+            createAddressList("foo@bar.com"),
+            randomFrom(Email.Priority.values()),
+            ZonedDateTime.now(),
+            createAddressList("foo@bar.com"),
+            null,
+            createAddressList("bcc@allowed.com", "bcc@notallowed.com"),
+            "subject",
+            "body",
+            "htmlbody",
+            Collections.emptyMap()
+        );
+        Set<String> allowedPatterns = Set.of("foo@bar.com", "bcc@allowed.com");
+        assertThat(EmailService.recipientAddressInAllowList(email, allowedPatterns), is(false));
+    }
+
+    private Email createTestEmail(String... recipients) throws UnsupportedEncodingException {
+        return new Email(
+            "id",
+            new Email.Address("sender@domain.com", "Sender"),
+            createAddressList(recipients),
+            randomFrom(Email.Priority.values()),
+            ZonedDateTime.now(),
+            createAddressList(recipients),
+            null,
+            null,
+            "subject",
+            "body",
+            "htmlbody",
+            Collections.emptyMap()
+        );
+    }
+
     private static Email.AddressList createAddressList(String... emails) throws UnsupportedEncodingException {
         List<Email.Address> addresses = new ArrayList<>();
         for (String email : emails) {
